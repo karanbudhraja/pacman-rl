@@ -12,7 +12,6 @@ class CustomAgent(Agent):
     """
     def getAction(self, state):
         legal = state.getLegalActions(self.index)
-        move = Directions.STOP
         move = random.choice(legal)
 
         return move
