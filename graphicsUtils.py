@@ -368,7 +368,7 @@ def move_by(object, x, y=None,
 
 def writePostscript(filename):
     "Writes the current canvas to a postscript file."
-    psfile = file(filename, 'w')
+    psfile = open(filename, 'w')
     psfile.write(_canvas.postscript(pageanchor='sw',
                      y='0.c',
                      x='0.c'))
