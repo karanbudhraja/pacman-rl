@@ -528,8 +528,8 @@ class Game:
         self.totalAgentTimes = [0 for agent in agents]
         self.totalAgentTimeWarnings = [0 for agent in agents]
         self.agentTimeout = False
-        import cStringIO
-        self.agentOutput = [cStringIO.StringIO() for agent in agents]
+        from io import StringIO
+        self.agentOutput = [StringIO for agent in agents]
 
     def getProgress(self):
         if self.gameOver:
@@ -550,7 +550,7 @@ class Game:
     def mute(self, agentIndex):
         if not self.muteAgents: return
         global OLD_STDOUT, OLD_STDERR
-        import cStringIO
+        from io import StringIO
         OLD_STDOUT = sys.stdout
         OLD_STDERR = sys.stderr
         sys.stdout = self.agentOutput[agentIndex]

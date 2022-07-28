@@ -15,7 +15,7 @@
 import sys
 import inspect
 import heapq, random
-import cStringIO
+from io import StringIO
 
 
 class FixedRandom:
