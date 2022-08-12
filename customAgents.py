@@ -70,20 +70,11 @@ class CustomAgent(Agent):
         total_reward = current_reward + future_rewards
         loss = -1 * total_reward
 
-        #future_rewards.backward()
-        #self.optimizer.zero_grad()
-        y = self.q_function(state)
-        #y.backward()
-
-        print(y)
-
-        #print(future_rewards)
-
         # update policy
-        #self.optimizer.zero_grad()
-        #loss.backward()
-        #self.optimizer.step()
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
-        #print(loss)
+        print(loss)
 
         return action
