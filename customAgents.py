@@ -17,13 +17,12 @@ class QFunction(torch.nn.Module):
 
         # neural network layers
         self.linear_1 = torch.nn.Linear(3, self.action_space_size)
-        self.softmax = torch.nn.Softmax(self.action_space_size)
 
     def forward(self, state):
         # calculate action probabilities
         input_data = torch.tensor([1,2,3], dtype=torch.float32)
         q_values = self.linear_1(input_data)
-        #q_values = self.softmax(1, q_values)
+        q_values = torch.nn.functional.softmax(q_values)
         
         return q_values
 
@@ -47,9 +46,7 @@ class CustomAgent(Agent):
     def getAction(self, state):
         # get q-values
         # convert to probabilities
-        q_values = self.q_function(state)
-        #action_probabilities = torch.nn.functional.normalize(q_values)
-        action_probabilities = q_values
+        action_probabilities = self.q_function(state)
 
         # get action
         # only allow for legal actions
