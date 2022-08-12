@@ -20,7 +20,9 @@ class QFunction(torch.nn.Module):
 
     def forward(self, state):
         # calculate action probabilities
-        q_values = torch.rand((1, self.action_space_size))
+        input_data = torch.tensor([1,2,3], dtype=torch.float32)
+        q_values = self.linear_1(input_data)
+        #q_values = torch.nn.Softmax(q_values)
 
         return q_values
 
@@ -45,7 +47,8 @@ class CustomAgent(Agent):
         # get q-values
         # convert to probabilities
         q_values = self.q_function(state)
-        action_probabilities = torch.nn.functional.normalize(q_values)
+        #action_probabilities = torch.nn.functional.normalize(q_values)
+        action_probabilities = q_values
 
         # get action
         # only allow for legal actions
