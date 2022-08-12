@@ -17,13 +17,14 @@ class QFunction(torch.nn.Module):
 
         # neural network layers
         self.linear_1 = torch.nn.Linear(3, self.action_space_size)
+        self.softmax = torch.nn.Softmax(self.action_space_size)
 
     def forward(self, state):
         # calculate action probabilities
         input_data = torch.tensor([1,2,3], dtype=torch.float32)
         q_values = self.linear_1(input_data)
-        #q_values = torch.nn.Softmax(q_values)
-
+        #q_values = self.softmax(1, q_values)
+        
         return q_values
 
 class CustomAgent(Agent):
@@ -61,7 +62,6 @@ class CustomAgent(Agent):
         if(torch.rand((1,1)).item() < self.epsilon):
             # take random action
             action = legal_actions[torch.randint(0, len(legal_actions), (1,1)).item()]
-
 
         # calculate loss
         next_state = state.generateSuccessor(self.index, action)
