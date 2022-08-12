@@ -2,61 +2,85 @@
 # custom agents added here
 #
 
+from pickletools import optimize
 from turtle import forward
 from game import Agent
 from game import Directions
 import random
 
 import torch
-import numpy as np
 
 class QFunction(torch.nn.Module):
-    def __init__(self, epsilon) -> None:
+    def __init__(self, action_space_size) -> None:
         super().__init__()
-        self.action_space = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST, Directions.STOP]
-        self.epsilon = epsilon
+        self.action_space_size = action_space_size
 
         # neural network layers
-        self.linear_1 = torch.nn.Linear(3, len(self.action_space))
+        self.linear_1 = torch.nn.Linear(3, self.action_space_size)
 
-    def forward(self, state, legal_actions):
+    def forward(self, state):
         # calculate action probabilities
-        action_probabilities = torch.rand((1, len(self.action_space)))
+        q_values = torch.rand((1, self.action_space_size))
 
-        # only allow for legal actions
-        action_mask = torch.tensor([x in legal_actions for x in self.action_space])
-        action_probabilities = action_probabilities * action_mask
-
-        # select epsilon-greedy policy
-        action = self.action_space[torch.argmax(action_probabilities)]
-        if(torch.rand((1,1)).item() < self.epsilon):
-            # take random action
-            action = legal_actions[torch.randint(0, len(legal_actions), (1,1)).item()]
-
-        return action
+        return q_values
 
 class CustomAgent(Agent):
     """
     A custom agent.
     """
-    def __init__(self, index=0):
+    def __init__(self, index=0, alpha=0.01, epsilon=0, gamma=0.99):
         super().__init__(index)
+        self.action_space = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST, Directions.STOP]
+        self.epsilon = epsilon
+        self.gamma = gamma
 
         # define q function
-        self.q_function = QFunction(1)
+        # define optimizer
+        self.q_function = QFunction(len(self.action_space))
+        self.optimizer = torch.optim.Adam(self.q_function.parameters(), lr=alpha)
+
+        print(list(self.q_function.parameters()))
 
     def getAction(self, state):
-        # take action
+        # get q-values
+        # convert to probabilities
+        q_values = self.q_function(state)
+        action_probabilities = torch.nn.functional.normalize(q_values)
+
+        # get action
+        # only allow for legal actions
         legal_actions = state.getLegalActions(self.index)
-        action = self.q_function(state, legal_actions)
+        action_mask = torch.tensor([x in legal_actions for x in self.action_space])
+        action_probabilities = action_probabilities * action_mask
+        action = self.action_space[torch.argmax(action_probabilities)]
+
+        # use epsilon-greedy policy
+        if(torch.rand((1,1)).item() < self.epsilon):
+            # take random action
+            action = legal_actions[torch.randint(0, len(legal_actions), (1,1)).item()]
+
+
+        # calculate loss
+        next_state = state.generateSuccessor(self.index, action)
+        current_reward = torch.tensor(next_state.data.score - state.data.score)
+        future_rewards = torch.mean(self.q_function(state) - self.gamma*self.q_function(next_state))
+        total_reward = current_reward + future_rewards
+        loss = -1 * total_reward
+
+        #future_rewards.backward()
+        #self.optimizer.zero_grad()
+        y = self.q_function(state)
+        #y.backward()
+
+        print(y)
+
+        #print(future_rewards)
 
         # update policy
-        next_state = state.generateSuccessor(self.index, action)
-        pass
+        #self.optimizer.zero_grad()
+        #loss.backward()
+        #self.optimizer.step()
 
-
-        x = state.data.score
-        y = next_state.data.score
-        print(x, y)
+        #print(loss)
 
         return action
