@@ -35,7 +35,7 @@ class ValueFunction(torch.nn.Module):
         value = torch.flatten(value)
         value = self.linear_1(value)
         value = self.linear_2(value)
-        value = torch.sigmoid(value)
+        value = torch.tanh(value)
 
         return value
 
@@ -73,7 +73,8 @@ class CustomAgent(Agent):
         self.epsilon = epsilon
         self.gamma = gamma
         self.data_buffer = []
-        self.data_buffer_limit = 1000
+        self.data_buffer_limit = 10
+        self.previous_score = 0
 
         # define q function
         # define optimizer
@@ -100,8 +101,41 @@ class CustomAgent(Agent):
         return symbol_information_numeric_data
 
     def getAction(self, state):
+        #
+        # manage data buffer
+        #
+
         # convert state
         state_tensor = self.state_to_tensor(state)
+
+        # add data to buffer
+        current_reward = torch.tensor(state.data.score - self.previous_score)
+        self.previous_score = state.data.score
+        self.data_buffer.append([state_tensor, current_reward])
+
+        # update policy when buffer is full
+        print(len(self.data_buffer))
+        if(len(self.data_buffer) == self.data_buffer_limit):
+            print("limit reached")
+
+            # update model
+            loss = torch.tensor(0, dtype=torch.float32)
+            loss_values = []
+            for index in torch.arange(1, len(self.data_buffer)):
+                previous_index = index - 1
+                [previous_state_tensor, previous_current_reward] = self.data_buffer[index]
+                [state_tensor, current_reward] = self.data_buffer[index]
+                empirical_state_value = current_reward
+                estimated_state_value = self.value_function(state_tensor) - self.value_function(previous_state_tensor)
+                loss_values.append(estimated_state_value - empirical_state_value)
+            torch.mean(loss_values)
+
+            # empty buffer
+            self.data_buffer = []
+
+        #
+        # compute action
+        #
 
         # get legal actions
         legal_actions = state.getLegalActions(self.index)
@@ -121,8 +155,6 @@ class CustomAgent(Agent):
             # take random action
             action = legal_actions[torch.randint(0, len(legal_actions), (1,1)).item()]
 
-        # add data to buffer
-        self.data_buffer.append([state_tensor])
 
 
         # # get policy
@@ -137,18 +169,9 @@ class CustomAgent(Agent):
         # action = self.action_space[torch.argmax(action_probabilities)]
 
         
-        # # update policy when buffer is full
-        # print(len(self.data_buffer))
-        # if(len(self.data_buffer) == self.data_buffer_limit):
-        #     print("limit reached")
-
-        #     # update model
-
-        #     # empty buffer
 
         # # # calculate loss
         # # next_state = state.generateSuccessor(self.index, action)
-        # # current_reward = torch.tensor(next_state.data.score - state.data.score)
         # # future_rewards = torch.mean(self.q_function(state) - self.gamma*self.q_function(next_state))
         # # total_reward = current_reward + future_rewards
         # # loss = -1 * total_reward
