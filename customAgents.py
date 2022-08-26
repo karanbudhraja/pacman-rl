@@ -64,13 +64,13 @@ class CustomAgent(Agent):
     """
     A custom agent.
     """
-    def __init__(self, index=0, alpha=0.01, epsilon=0, gamma=0.99):
+    def __init__(self, index=0, alpha=0.001, epsilon=0, gamma=0.99):
         super().__init__(index)
         self.action_space = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST, Directions.STOP]
         self.epsilon = epsilon
         self.gamma = gamma
         self.data_buffer = []
-        self.data_buffer_limit = 10
+        self.data_buffer_limit = 100
         self.previous_score = 0
 
         # define q function
@@ -119,7 +119,7 @@ class CustomAgent(Agent):
                 [previous_state_tensor, previous_current_reward] = self.data_buffer[index]
                 [state_tensor, current_reward] = self.data_buffer[index]
                 empirical_state_value = current_reward
-                estimated_state_value = self.value_function(state_tensor) - self.value_function(previous_state_tensor)
+                estimated_state_value = self.gamma*self.value_function(state_tensor) - self.value_function(previous_state_tensor)
                 empirical_values.append(empirical_state_value)
                 estimated_values.append(estimated_state_value)
             loss_function = torch.nn.MSELoss()
