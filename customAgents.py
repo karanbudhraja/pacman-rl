@@ -97,6 +97,26 @@ class CustomAgent(Agent):
 
         return symbol_information_numeric_data
 
+    def update(self):
+        # perform gradient descent
+        empirical_values = []
+        estimated_values = []
+        for index in torch.arange(1, len(self.data_buffer)):
+            previous_index = index - 1
+            [previous_state_tensor, _] = self.data_buffer[previous_index]
+            [state_tensor, current_reward] = self.data_buffer[index]
+            empirical_state_value = torch.tanh(current_reward)
+            estimated_state_value = self.gamma*self.value_function(state_tensor) - self.value_function(previous_state_tensor)
+            empirical_values.append(empirical_state_value)
+            estimated_values.append(estimated_state_value)
+        loss_function = torch.nn.MSELoss()
+        loss = loss_function(torch.tensor(empirical_values, dtype=torch.float32, requires_grad=True), torch.tensor(estimated_values, dtype=torch.float32, requires_grad=True))
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        return loss
+
     def getAction(self, state):
         #
         # manage data buffer
@@ -112,21 +132,7 @@ class CustomAgent(Agent):
 
         # update model when buffer is full
         if(len(self.data_buffer) == self.data_buffer_limit):
-            empirical_values = []
-            estimated_values = []
-            for index in torch.arange(1, len(self.data_buffer)):
-                previous_index = index - 1
-                [previous_state_tensor, _] = self.data_buffer[previous_index]
-                [state_tensor, current_reward] = self.data_buffer[index]
-                empirical_state_value = torch.tanh(current_reward)
-                estimated_state_value = self.gamma*self.value_function(state_tensor) - self.value_function(previous_state_tensor)
-                empirical_values.append(empirical_state_value)
-                estimated_values.append(estimated_state_value)
-            loss_function = torch.nn.MSELoss()
-            loss = loss_function(torch.tensor(empirical_values, dtype=torch.float32, requires_grad=True), torch.tensor(estimated_values, dtype=torch.float32, requires_grad=True))
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+            loss = self.update()
             print(loss)
             
             # empty buffer
