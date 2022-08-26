@@ -82,6 +82,11 @@ class CustomAgent(Agent):
         self.policy_function = PolicyFunction(input_size, len(self.action_space))
         self.optimizer = torch.optim.Adam(self.value_function.parameters(), lr=alpha)
 
+        # logging
+        self.log_file_name = "loss.txt"
+        with open(self.log_file_name, "a") as log_file:
+            log_file.truncate()
+
     def state_to_tensor(self, state):
         # get state data without score
         # convert to matrix
@@ -119,26 +124,6 @@ class CustomAgent(Agent):
 
     def getAction(self, state):
         #
-        # manage data buffer
-        #
-
-        # convert state
-        state_tensor = self.state_to_tensor(state)
-
-        # add data to buffer
-        current_reward = torch.tensor(state.data.score - self.previous_score)
-        self.previous_score = state.data.score
-        self.data_buffer.append([state_tensor, current_reward])
-
-        # update model when buffer is full
-        if(len(self.data_buffer) == self.data_buffer_limit):
-            loss = self.update()
-            print(loss)
-            
-            # empty buffer
-            self.data_buffer = []
-
-        #
         # compute action
         #
 
@@ -160,31 +145,24 @@ class CustomAgent(Agent):
             # take random action
             action = legal_actions[torch.randint(0, len(legal_actions), (1,1)).item()]
 
+        #
+        # manage data buffer
+        #
 
+        # convert state
+        # add data to buffer
+        successor_state = state.generateSuccessor(self.index, action)
+        successor_reward = torch.tanh(torch.tensor(successor_state.data.score - state.data.score))
+        self.data_buffer.append([self.state_to_tensor(successor_state), successor_reward])
 
-        # # get policy
-        # action_probabilities = self.q_function(state_tensor)
+        # update model when buffer is full
+        if(len(self.data_buffer) == self.data_buffer_limit):
+            loss = self.update()
+            print(loss)
+            with open(self.log_file_name, "a") as log_file:
+                log_file.write(str(loss.item()) + "\n")
 
-
-        # # get action
-        # # only allow for legal actions
-        # legal_actions = state.getLegalActions(self.index)
-        # action_mask = torch.tensor([x in legal_actions for x in self.action_space])
-        # action_probabilities = action_probabilities * action_mask
-        # action = self.action_space[torch.argmax(action_probabilities)]
-
-        
-
-        # # # calculate loss
-        # # next_state = state.generateSuccessor(self.index, action)
-        # # future_rewards = torch.mean(self.q_function(state) - self.gamma*self.q_function(next_state))
-        # # total_reward = current_reward + future_rewards
-        # # loss = -1 * total_reward
-
-        # # # update policy
-
-        # # print(loss)
-
-        action = legal_actions[torch.randint(0, len(legal_actions), (1,1)).item()]
+            # empty buffer
+            self.data_buffer = []
 
         return action
