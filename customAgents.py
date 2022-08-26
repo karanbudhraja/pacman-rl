@@ -118,7 +118,7 @@ class CustomAgent(Agent):
                 previous_index = index - 1
                 [previous_state_tensor, _] = self.data_buffer[previous_index]
                 [state_tensor, current_reward] = self.data_buffer[index]
-                empirical_state_value = current_reward
+                empirical_state_value = torch.tanh(current_reward)
                 estimated_state_value = self.gamma*self.value_function(state_tensor) - self.value_function(previous_state_tensor)
                 empirical_values.append(empirical_state_value)
                 estimated_values.append(estimated_state_value)
