@@ -8,11 +8,8 @@ from turtle import forward
 from cairo import STATUS_FILE_NOT_FOUND
 from game import Agent
 from game import Directions
-import random
 
 import torch
-
-import numpy as np
 
 class ValueFunction(torch.nn.Module):
     def __init__(self, input_size) -> None:
@@ -113,23 +110,25 @@ class CustomAgent(Agent):
         self.previous_score = state.data.score
         self.data_buffer.append([state_tensor, current_reward])
 
-        # update policy when buffer is full
-        print(len(self.data_buffer))
+        # update model when buffer is full
         if(len(self.data_buffer) == self.data_buffer_limit):
-            print("limit reached")
-
-            # update model
-            loss = torch.tensor(0, dtype=torch.float32)
-            loss_values = []
+            empirical_values = []
+            estimated_values = []
             for index in torch.arange(1, len(self.data_buffer)):
                 previous_index = index - 1
                 [previous_state_tensor, previous_current_reward] = self.data_buffer[index]
                 [state_tensor, current_reward] = self.data_buffer[index]
                 empirical_state_value = current_reward
                 estimated_state_value = self.value_function(state_tensor) - self.value_function(previous_state_tensor)
-                loss_values.append(estimated_state_value - empirical_state_value)
-            torch.mean(loss_values)
-
+                empirical_values.append(empirical_state_value)
+                estimated_values.append(estimated_state_value)
+            loss_function = torch.nn.MSELoss()
+            loss = loss_function(torch.tensor(empirical_values, dtype=torch.float32, requires_grad=True), torch.tensor(estimated_values, dtype=torch.float32, requires_grad=True))
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+            print(loss)
+            
             # empty buffer
             self.data_buffer = []
 
@@ -177,9 +176,6 @@ class CustomAgent(Agent):
         # # loss = -1 * total_reward
 
         # # # update policy
-        # # self.optimizer.zero_grad()
-        # # loss.backward()
-        # # self.optimizer.step()
 
         # # print(loss)
 
